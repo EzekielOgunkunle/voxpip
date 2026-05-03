@@ -4,6 +4,14 @@ argument-hint: <video-url-or-path> [question]
 allowed-tools: [Bash, Read, AskUserQuestion]
 ---
 
-Invoke the `voxpip` skill (defined in SKILL.md) with the user's arguments: $ARGUMENTS
+Extract the video URL or path from: $ARGUMENTS
 
-Follow the skill's full pipeline: preflight setup check → download via yt-dlp → extract frames at auto-scaled fps → pull captions or Whisper transcript → Read each frame → answer the user grounded in frames and transcript. If the user provided no arguments, ask them for a video URL or local path before proceeding.
+If no video was provided, use AskUserQuestion to ask for one before doing anything else.
+
+Run this exact command. Do NOT run yt-dlp, ffmpeg, ffprobe, or whisper yourself — the script handles everything:
+
+```bash
+python3 "${CLAUDE_SKILL_DIR}/scripts/watch.py" "<video-url-or-path>"
+```
+
+Wait for the script to finish. It will download the video, extract frames, and attempt transcription in this order: native captions → local STT (voxtype/whisper.cpp/mlx_whisper/openai-whisper) → Groq API → OpenAI API. Read every frame path the script prints. Answer the user using the frames and transcript. Separate any question the user asked from the video URL and answer it directly.
