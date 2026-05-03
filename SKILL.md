@@ -31,8 +31,8 @@ On non-zero exit, follow the table:
 | Exit | Meaning | Action |
 |------|---------|--------|
 | `2` | Missing binaries (`ffmpeg` / `ffprobe` / `yt-dlp`) | Run installer |
-| `3` | No Whisper API key | Run installer to scaffold `.env`, then ask user for a key |
-| `4` | Both missing | Run installer, then ask for a key |
+| `3` | No Whisper API key | **Do NOT block.** Local STT handles transcription without any key — proceed directly to Step 2. Only run the installer if the user explicitly wants Whisper API. |
+| `4` | Both missing | Run installer for binaries, then proceed — no API key needed |
 
 The installer is idempotent — safe to re-run:
 
@@ -67,7 +67,9 @@ Within a single session, you can skip Step 0 on follow-up `/watch` calls — onc
 
 ## How to invoke
 
-**Step 1 — parse the user input.** Separate the video source (URL or path) from any question the user asked. Example: `/watch https://youtu.be/abc what language is this in?` → source = `https://youtu.be/abc`, question = `what language is this in?`.
+**CRITICAL: Always run `watch.py` — never build your own pipeline.** Do not manually call `yt-dlp`, `ffmpeg`, `ffprobe`, or any whisper binary yourself. `watch.py` handles the full pipeline: download → frames → captions → local STT → Whisper API → report. Your job is to run the script and read its output.
+
+**Step 1 — parse the user input.** Separate the video source (URL or path) from any question the user asked. Example: `/voxpip https://youtu.be/abc what language is this in?` → source = `https://youtu.be/abc`, question = `what language is this in?`.
 
 **Step 2 — run the watch script.** Pass the source verbatim. Do not shell-escape it yourself beyond normal quoting:
 
@@ -125,14 +127,16 @@ If the user asked a specific question, answer it directly citing timestamps. If 
 
 ## Transcription
 
-The script gets a timestamped transcript in one of two ways:
+The script tries four tiers in order — it stops at the first that succeeds:
 
 1. **Native captions (free, preferred).** yt-dlp pulls manual or auto-generated subtitles from the source platform if available.
-2. **Whisper API fallback.** If no captions came back (or the source is a local file), the script extracts audio (`ffmpeg -vn -ac 1 -ar 16000 -b:a 64k`, ~0.5 MB/min) and uploads it to whichever Whisper API has a key configured:
-   - **Groq** — `whisper-large-v3`. Preferred default: cheaper, faster. Get a key at console.groq.com/keys.
-   - **OpenAI** — `whisper-1`. Fallback. Get a key at platform.openai.com/api-keys.
+2. **Local STT (free, no API key needed).** If no captions, the script detects a locally installed engine (`voxtype`, `whisper.cpp`, `mlx_whisper`, or `openai-whisper`) and transcribes offline. Engine is auto-detected and cached in `~/.config/voxpip/.env`. Use `--no-local-stt` to skip this tier.
+3. **Groq Whisper API.** `whisper-large-v3`. Cheaper and faster than OpenAI. Requires `GROQ_API_KEY` in `~/.config/watch/.env`.
+4. **OpenAI Whisper API.** `whisper-1`. Requires `OPENAI_API_KEY` in `~/.config/watch/.env`.
 
-Both keys live in `~/.config/watch/.env`. The script prefers Groq when both are set; override with `--whisper openai` to force OpenAI. Use `--no-whisper` to skip the fallback entirely.
+**No API key and no local engine** → the script proceeds with frames only. Do not treat this as an error requiring user intervention unless the user explicitly asks for a transcript.
+
+Keys live in `~/.config/watch/.env`. Use `--no-whisper` to skip tiers 3 and 4 entirely.
 
 ## Failure modes and handling
 
@@ -168,6 +172,6 @@ If you already watched a video this session and the user asks a follow-up, do **
 - Does not log, cache, or write API keys to stdout, stderr, or output files
 - Does not persist anything outside the working directory and `~/.config/watch/.env` — clean up the working directory when you're done (Step 5)
 
-**Bundled scripts:** `scripts/watch.py` (entry point), `scripts/download.py` (yt-dlp wrapper), `scripts/frames.py` (ffmpeg frame extraction), `scripts/transcribe.py` (caption selection + Whisper orchestration), `scripts/whisper.py` (Groq / OpenAI clients), `scripts/setup.py` (preflight + installer)
+**Bundled scripts:** `scripts/watch.py` (entry point), `scripts/download.py` (yt-dlp wrapper), `scripts/frames.py` (ffmpeg frame extraction), `scripts/transcribe.py` (VTT caption parser), `scripts/local_stt.py` (local STT engine detection + transcription), `scripts/whisper.py` (Groq / OpenAI clients), `scripts/setup.py` (preflight + installer)
 
 Review scripts before first use to verify behavior.
