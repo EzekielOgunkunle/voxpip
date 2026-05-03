@@ -166,7 +166,8 @@ def transcribe_local(video_path: Path, audio_out: Path) -> list[dict]:
             wav_path = tmp_dir / "audio.wav"
 
             print(f"[watch] local STT: converting audio for {engine}...", file=sys.stderr)
-            _convert_to_wav(audio_out, wav_path)
+            source = audio_out if audio_out.exists() else video_path
+            _convert_to_wav(source, wav_path)
 
             print(f"[watch] local STT: running {engine}...", file=sys.stderr)
             raw = _run_engine(engine, wav_path, tmp_dir)
