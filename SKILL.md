@@ -1,11 +1,11 @@
 ---
-name: watch
-description: Watch a video (URL or local path). Downloads with yt-dlp, extracts auto-scaled frames with ffmpeg, pulls the transcript from captions (or Whisper API fallback), and hands the result to Claude so it can answer questions about what's in the video.
+name: voxpip
+description: "Watch any video and get a transcript — even without an API key. Extends /watch with a local speech-to-text fallback."
 argument-hint: "<video-url-or-path> [question]"
 allowed-tools: Bash, Read, AskUserQuestion
-homepage: https://github.com/bradautomates/claude-video
-repository: https://github.com/bradautomates/claude-video
-author: bradautomates
+homepage: https://github.com/EzekielOgunkunle/voxpip
+repository: https://github.com/EzekielOgunkunle/voxpip
+author: EzekielOgunkunle
 license: MIT
 user-invocable: true
 ---

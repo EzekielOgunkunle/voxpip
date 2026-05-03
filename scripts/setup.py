@@ -30,6 +30,8 @@ from pathlib import Path
 REQUIRED_BINARIES = ["ffmpeg", "ffprobe", "yt-dlp"]
 CONFIG_DIR = Path.home() / ".config" / "watch"
 CONFIG_FILE = CONFIG_DIR / ".env"
+VOXPIP_CONFIG_DIR = Path.home() / ".config" / "voxpip"
+VOXPIP_CONFIG_FILE = VOXPIP_CONFIG_DIR / ".env"
 ENV_TEMPLATE = """# /watch API configuration
 #
 # Whisper transcription fallback — used only when yt-dlp cannot get captions
@@ -101,6 +103,72 @@ def _have_api_key() -> tuple[bool, str | None]:
     if _read_env_key("OPENAI_API_KEY"):
         return True, "openai"
     return False, None
+
+
+def _read_voxpip_env_key(name: str) -> str | None:
+    if not VOXPIP_CONFIG_FILE.exists():
+        return None
+    try:
+        for line in VOXPIP_CONFIG_FILE.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, raw = line.partition("=")
+            if key.strip() != name:
+                continue
+            raw = raw.strip()
+            if len(raw) >= 2 and raw[0] in ('"', "'") and raw[-1] == raw[0]:
+                raw = raw[1:-1]
+            return raw or None
+    except OSError:
+        return None
+    return None
+
+
+def _write_voxpip_env_key(name: str, value: str) -> None:
+    VOXPIP_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    existing = VOXPIP_CONFIG_FILE.read_text() if VOXPIP_CONFIG_FILE.exists() else ""
+    lines = existing.splitlines(keepends=True)
+    new_lines = [l for l in lines if not l.strip().startswith(f"{name}=")]
+    if new_lines and not new_lines[-1].endswith("\n"):
+        new_lines[-1] += "\n"
+    new_lines.append(f"{name}={value}\n")
+    VOXPIP_CONFIG_FILE.write_text("".join(new_lines))
+    try:
+        VOXPIP_CONFIG_FILE.chmod(0o600)
+    except OSError:
+        pass
+
+
+def _detect_local_stt_engine() -> str | None:
+    """Detect installed local STT engine. Detection order: voxtype, whisper-cpp, mlx_whisper, whisper."""
+    if shutil.which("voxtype"):
+        return "voxtype"
+    if shutil.which("whisper-cpp"):
+        return "whisper-cpp"
+    try:
+        result = subprocess.run(
+            ["python3", "-m", "mlx_whisper", "--help"],
+            capture_output=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return "mlx_whisper"
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    if shutil.which("whisper"):
+        return "whisper"
+    return None
+
+
+def _get_local_stt_engine() -> str | None:
+    """Return cached local STT engine, detecting and caching if not yet stored."""
+    cached = _read_voxpip_env_key("LOCAL_STT_ENGINE")
+    if cached is not None:
+        return cached if cached != "none" else None
+    engine = _detect_local_stt_engine()
+    _write_voxpip_env_key("LOCAL_STT_ENGINE", engine if engine is not None else "none")
+    return engine
 
 
 def is_first_run() -> bool:
@@ -218,6 +286,7 @@ def _status() -> dict:
         "has_api_key": has_key,
         "config_file": str(CONFIG_FILE),
         "platform": platform.system(),
+        "local_stt_engine": _get_local_stt_engine(),
     }
 
 
@@ -292,6 +361,12 @@ def cmd_install() -> int:
         print(f"[setup] created config: {CONFIG_FILE}")
     else:
         print(f"[setup] config exists: {CONFIG_FILE}")
+
+    local_stt = _get_local_stt_engine()
+    if local_stt:
+        print(f"[setup] local STT detected: {local_stt} (no API key needed for transcription)")
+    else:
+        print("[setup] no local STT engine detected (optional — install voxtype, whisper.cpp, mlx_whisper, or openai-whisper)")
 
     has_key, backend = _have_api_key()
     if has_key:

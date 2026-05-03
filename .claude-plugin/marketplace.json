@@ -1,21 +1,21 @@
 {
-  "name": "claude-video",
+  "name": "voxpip",
   "metadata": {
-    "description": "Give Claude a video input. /watch downloads, extracts frames, transcribes, and hands it all to Claude."
+    "description": "Watch any video and get a transcript — even without an API key. Extends /watch with a local STT fallback."
   },
   "owner": {
-    "name": "Bradley Bonanno"
+    "name": "Ezekiel Ogunkunle"
   },
   "plugins": [
     {
-      "name": "watch",
-      "description": "Watch a video (URL or local path). Downloads with yt-dlp, extracts frames with ffmpeg, transcribes via captions or Whisper.",
+      "name": "voxpip",
+      "description": "Watch any video and get a transcript — even without an API key. Extends /watch with a local speech-to-text fallback.",
       "author": {
-        "name": "Bradley Bonanno"
+        "name": "Ezekiel Ogunkunle"
       },
       "source": "./",
       "category": "productivity",
-      "homepage": "https://github.com/bradautomates/claude-video"
+      "homepage": "https://github.com/EzekielOgunkunle/voxpip"
     }
   ]
 }
