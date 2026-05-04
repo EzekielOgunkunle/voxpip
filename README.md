@@ -8,7 +8,7 @@ Claude Code:
 /plugin install voxpip@voxpip
 ```
 
-claude.ai (web): [download `voxpip.skill`](https://github.com/EzekielOgunkunle/voxpip/releases/latest) and drop it into Settings → Capabilities → Skills.
+claude.ai (web): install via the Claude Code plugin marketplace or clone the repo directly.
 
 Codex / generic skills:
 ```bash
@@ -67,7 +67,7 @@ If a video has no native captions, voxpip tries your local STT engine before rea
 | Surface | Install |
 |---------|---------|
 | **Claude Code** | `/plugin marketplace add EzekielOgunkunle/voxpip` then `/plugin install voxpip@voxpip` |
-| **claude.ai** (web) | [Download `voxpip.skill`](https://github.com/EzekielOgunkunle/voxpip/releases/latest) → Settings → Capabilities → Skills → `+` |
+| **claude.ai** (web) | Install via the Claude Code plugin marketplace |
 | **Codex** | `git clone https://github.com/EzekielOgunkunle/voxpip.git ~/.codex/skills/voxpip` |
 | **Manual / dev** | `git clone https://github.com/EzekielOgunkunle/voxpip.git ~/.claude/skills/voxpip` |
 
