@@ -17,13 +17,17 @@ git clone https://github.com/EzekielOgunkunle/voxpip.git ~/.codex/skills/voxpip
 
 Zero config to start — local STT detected automatically on first run.
 
+> **Note:** voxpip is a Claude Code plugin, not a PyPI package. `pip install voxpip` will not work — use the install commands above.
+
 ---
 
 I built this because I work with a lot of video content and I wanted a way to hand video to Claude without needing an API key just to get a transcript. Brad Bonanno's `/watch` plugin was the perfect foundation — solid pipeline, clean code. I added a local STT tier so the transcription fallback works even if you've never touched a Groq or OpenAI account.
 
 ## What it adds to /watch
 
-The core pipeline is Brad's: yt-dlp downloads the video, ffmpeg extracts frames, captions come first. What voxpip adds is a second transcription tier that runs entirely on your machine. If a video has no native captions, voxpip tries your local STT engine before reaching for a cloud API. If local STT isn't installed either, it falls back to Groq or OpenAI exactly as the upstream does. You can also force the behavior with `--no-local-stt` or `--no-whisper`.
+This plugin forks [bradautomates/claude-video](https://github.com/bradautomates/claude-video). Brad's pipeline handles everything: download via yt-dlp, frame extraction via ffmpeg, native caption parsing, and cloud Whisper fallback (Groq/OpenAI). voxpip's single addition is a local STT tier that sits between caption parsing and the cloud APIs.
+
+If a video has no native captions, voxpip tries your local STT engine before reaching for a cloud API. If local STT isn't installed either, it falls back to Groq or OpenAI exactly as the upstream does. You can also force the behavior with `--no-local-stt` or `--no-whisper`.
 
 ## How it works
 
@@ -39,10 +43,12 @@ The core pipeline is Brad's: yt-dlp downloads the video, ffmpeg extracts frames,
 
 | Engine | Platform | Install |
 |--------|----------|---------|
-| voxtype | Linux/macOS | `pip install voxtype` |
+| voxtype | Linux (Arch) | `paru -S voxtype` or `yay -S voxtype` — non-Arch: see [voxtype.io](https://voxtype.io) |
 | whisper.cpp | Linux/macOS/Windows | [github.com/ggerganov/whisper.cpp](https://github.com/ggerganov/whisper.cpp) — build or grab a release binary |
 | mlx_whisper | macOS (Apple Silicon) | `pip install mlx-whisper` |
 | whisper (openai-whisper) | Linux/macOS/Windows | `pip install openai-whisper` |
+
+> **voxtype note:** voxtype is primarily a push-to-talk dictation tool. voxpip invokes it via `voxtype transcribe <file>` — voxtype must expose this CLI transcription mode to be usable here. See [voxtype.io/docs](https://voxtype.io/docs) to verify your version supports it.
 
 `setup.py` detects whichever is on your PATH and caches the result in `~/.config/voxpip/.env` (key: `LOCAL_STT_ENGINE`). Re-detection only happens if the key is missing.
 
